@@ -2,12 +2,17 @@ package com.spring;
 
 import java.io.File;
 import java.net.URL;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 容器类
  */
 public class ZApplicationContext {
     private Class configClass;
+
+    // 单例池
+    ConcurrentHashMap<String, Object> singletonObejcts = new ConcurrentHashMap<>();
+    ConcurrentHashMap<String, BeanDefinition> beanDefinitionMap = new ConcurrentHashMap<>();
 
     public ZApplicationContext(Class configClass) throws ClassNotFoundException {
         this.configClass = configClass;
@@ -35,15 +40,17 @@ public class ZApplicationContext {
                 String classname = filename.substring(filename.indexOf("com"), filename.indexOf(".class")).replaceAll("\\\\", ".");
                 try {
                     Class<?> clazz = classLoader.loadClass(classname);
+                    // 发现一个类上有 componet 注解
                     if (clazz.isAnnotationPresent(Componet.class)) {
-                        System.out.println(classname + " is bean");
+                        // 解析bean，判断当前bean是单例bean还是原型bean
+                        // 若为单例bean，则放入单例池
+                        // BeanDeginition
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
         }
-
     }
 
     public Object getBean(String beanName) {
