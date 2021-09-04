@@ -2,7 +2,7 @@ package com.demo;
 
 import com.spring.ComponentScan;
 
-@ComponentScan("com.service")
+@ComponentScan("com.demo.service")
 public class AppConfig {
 
 }
