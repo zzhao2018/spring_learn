@@ -7,11 +7,6 @@ public class BeanDefinition {
     private Class clazz;
     private String scope;
 
-    public BeanDefinition(Class clazz, String scope) {
-        this.clazz = clazz;
-        this.scope = scope;
-    }
-
     public Class getClazz() {
         return clazz;
     }
