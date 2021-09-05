@@ -1,6 +1,7 @@
 package com.spring;
 
 import java.io.File;
+import java.lang.reflect.Field;
 import java.net.URL;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -14,10 +15,22 @@ public class ZApplicationContext {
     ConcurrentHashMap<String, Object> singletonObejcts = new ConcurrentHashMap<>();
     ConcurrentHashMap<String, BeanDefinition> beanDefinitionMap = new ConcurrentHashMap<>();
 
-    public ZApplicationContext(Class<com.demo.AppConfig> configClass) throws ClassNotFoundException {
+    public ZApplicationContext(Class<com.demo.AppConfig> configClass) throws Exception {
         this.configClass = configClass;
         // 扫描指定service路径，扫描类，生成beanDefine并放入map，单例bean放入单例池
         scan(configClass);
+        // 扫描单例bean，放入单例池
+        for (String beanName : beanDefinitionMap.keySet()) {
+            BeanDefinition beanDefinition = beanDefinitionMap.get(beanName);
+            if (beanDefinition.getScope().equals("singleton")) {
+                singletonObejcts.put(beanName, initBean(beanDefinition));
+            }
+        }
+        // 单例bean 依赖注入
+        for (String beanName : singletonObejcts.keySet()) {
+            Object obj = singletonObejcts.get(beanName);
+            autowiredInject(obj);
+        }
     }
 
     private void scan(Class<com.demo.AppConfig> configClass) {
@@ -52,10 +65,6 @@ public class ZApplicationContext {
                                 beanDefinition.setScope("singleton");
                             }
                             beanDefinitionMap.put(beanName, beanDefinition);
-                            // 如果是单例bean，放入单例池
-                            if (beanDefinition.getScope().equals("singleton")) {
-                                singletonObejcts.put(beanName, createBean(beanDefinition));
-                            }
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -65,10 +74,44 @@ public class ZApplicationContext {
         }
     }
 
-    private Object createBean(BeanDefinition beanDefinition) {
+    // 初始化bean
+    private Object initBean(BeanDefinition beanDefinition) {
         Class clazz = beanDefinition.getClazz();
         try {
             return clazz.getDeclaredConstructor().newInstance();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private void autowiredInject(Object obj) throws Exception {
+        Class clazz = obj.getClass();
+        for (Field field : clazz.getDeclaredFields()) {
+            if (field.isAnnotationPresent(Autowired.class)) {
+                Object fieldBean = getBean(field.getName());
+                field.setAccessible(true);
+                field.set(obj, fieldBean);
+            }
+        }
+    }
+
+    // 创建bean
+    private Object createBean(BeanDefinition beanDefinition) {
+        Class clazz = beanDefinition.getClazz();
+        try {
+            Object instance = clazz.getDeclaredConstructor().newInstance();
+            // 依赖注入
+            for (Field field : clazz.getDeclaredFields()) {
+                if (field.isAnnotationPresent(Autowired.class)) {
+                    // 根据属性名称获取
+                    Object bean = getBean(field.getName());
+                    // private可访问
+                    field.setAccessible(true);
+                    field.set(instance, bean);
+                }
+            }
+            return instance;
         } catch (Exception e) {
             e.printStackTrace();
         }
