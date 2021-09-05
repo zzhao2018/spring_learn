@@ -23,13 +23,13 @@ public class ZApplicationContext {
         for (String beanName : beanDefinitionMap.keySet()) {
             BeanDefinition beanDefinition = beanDefinitionMap.get(beanName);
             if (beanDefinition.getScope().equals("singleton")) {
-                singletonObejcts.put(beanName, initBean(beanName, beanDefinition));
+                singletonObejcts.put(beanName, initBean(beanDefinition));
             }
         }
         // 单例bean 依赖注入
         for (String beanName : singletonObejcts.keySet()) {
             Object obj = singletonObejcts.get(beanName);
-            autowiredInject(obj);
+            autowiredInject(beanName, obj);
         }
     }
 
@@ -74,16 +74,10 @@ public class ZApplicationContext {
     }
 
     // 初始化bean
-    private Object initBean(String beanName, BeanDefinition beanDefinition) {
+    private Object initBean(BeanDefinition beanDefinition) {
         Class clazz = beanDefinition.getClazz();
         try {
             Object obj = clazz.getDeclaredConstructor().newInstance();
-            if (obj instanceof BeanNameAware) {
-                ((BeanNameAware) obj).setBeanName(beanName);
-            }
-            if (obj instanceof InitializingBean) {
-                ((InitializingBean) obj).afterPropertiesSet();
-            }
             return obj;
         } catch (Exception e) {
             e.printStackTrace();
@@ -91,7 +85,7 @@ public class ZApplicationContext {
         return null;
     }
 
-    private void autowiredInject(Object obj) throws Exception {
+    private void autowiredInject(String beanName, Object obj) throws Exception {
         Class clazz = obj.getClass();
         for (Field field : clazz.getDeclaredFields()) {
             if (field.isAnnotationPresent(Autowired.class)) {
@@ -102,6 +96,12 @@ public class ZApplicationContext {
                 field.setAccessible(true);
                 field.set(obj, fieldBean);
             }
+        }
+        if (obj instanceof BeanNameAware) {
+            ((BeanNameAware) obj).setBeanName(beanName);
+        }
+        if (obj instanceof InitializingBean) {
+            ((InitializingBean) obj).afterPropertiesSet();
         }
     }
 
