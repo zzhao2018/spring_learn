@@ -23,7 +23,7 @@ public class ZApplicationContext {
         for (String beanName : beanDefinitionMap.keySet()) {
             BeanDefinition beanDefinition = beanDefinitionMap.get(beanName);
             if (beanDefinition.getScope().equals("singleton")) {
-                singletonObejcts.put(beanName, initBean(beanDefinition));
+                singletonObejcts.put(beanName, initBean(beanName, beanDefinition));
             }
         }
         // 单例bean 依赖注入
@@ -36,7 +36,6 @@ public class ZApplicationContext {
     private void scan(Class<com.demo.AppConfig> configClass) {
         // 获取配置类ComponentScan的注解,得到扫描路径
         ComponentScan componentScanAnnotation = (ComponentScan) configClass.getDeclaredAnnotation(ComponentScan.class);
-
         // 获取app classLoader
         ClassLoader classLoader = ZApplicationContext.class.getClassLoader();
         // 获取类
@@ -75,10 +74,14 @@ public class ZApplicationContext {
     }
 
     // 初始化bean
-    private Object initBean(BeanDefinition beanDefinition) {
+    private Object initBean(String beanName, BeanDefinition beanDefinition) {
         Class clazz = beanDefinition.getClazz();
         try {
-            return clazz.getDeclaredConstructor().newInstance();
+            Object obj = clazz.getDeclaredConstructor().newInstance();
+            if (obj instanceof BeanNameAware) {
+                ((BeanNameAware) obj).setBeanName(beanName);
+            }
+            return obj;
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -90,6 +93,9 @@ public class ZApplicationContext {
         for (Field field : clazz.getDeclaredFields()) {
             if (field.isAnnotationPresent(Autowired.class)) {
                 Object fieldBean = getBean(field.getName());
+                if (fieldBean == null) {
+                    throw new Exception("autowiredInject " + field.getName() + " bean not find");
+                }
                 field.setAccessible(true);
                 field.set(obj, fieldBean);
             }
@@ -97,7 +103,7 @@ public class ZApplicationContext {
     }
 
     // 创建bean
-    private Object createBean(BeanDefinition beanDefinition) {
+    private Object createBean(String beanName, BeanDefinition beanDefinition) {
         Class clazz = beanDefinition.getClazz();
         try {
             Object instance = clazz.getDeclaredConstructor().newInstance();
@@ -110,6 +116,9 @@ public class ZApplicationContext {
                     field.setAccessible(true);
                     field.set(instance, bean);
                 }
+            }
+            if (instance instanceof BeanNameAware) {
+                ((BeanNameAware) instance).setBeanName(beanName);
             }
             return instance;
         } catch (Exception e) {
@@ -124,7 +133,7 @@ public class ZApplicationContext {
             if (beanDefinition.getScope().equals("singleton")) {
                 return singletonObejcts.get(beanName);
             } else {
-                return createBean(beanDefinition);
+                return createBean(beanName, beanDefinition);
             }
         } else {
             throw new Exception("bean " + beanName + " not found");
