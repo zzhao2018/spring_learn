@@ -1,12 +1,10 @@
 package com.demo.service;
 
-import com.spring.Autowired;
-import com.spring.BeanNameAware;
-import com.spring.Componet;
-import com.spring.Scope;
+import com.spring.*;
 
 @Componet("userService")
-public class UserService implements BeanNameAware {
+@Scope("prototype")
+public class UserService implements BeanNameAware, InitializingBean {
     @Autowired
     private AddrService addrService;
 
@@ -23,5 +21,10 @@ public class UserService implements BeanNameAware {
     @Override
     public void setBeanName(String var1) {
         this.beanName = var1;
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        System.out.println("afterPropertiesSet ----");
     }
 }

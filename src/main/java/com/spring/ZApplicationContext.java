@@ -81,6 +81,9 @@ public class ZApplicationContext {
             if (obj instanceof BeanNameAware) {
                 ((BeanNameAware) obj).setBeanName(beanName);
             }
+            if (obj instanceof InitializingBean) {
+                ((InitializingBean) obj).afterPropertiesSet();
+            }
             return obj;
         } catch (Exception e) {
             e.printStackTrace();
@@ -119,6 +122,9 @@ public class ZApplicationContext {
             }
             if (instance instanceof BeanNameAware) {
                 ((BeanNameAware) instance).setBeanName(beanName);
+            }
+            if (instance instanceof InitializingBean) {
+                ((InitializingBean) instance).afterPropertiesSet();
             }
             return instance;
         } catch (Exception e) {
