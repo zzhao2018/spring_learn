@@ -10,11 +10,14 @@ public class UserService implements BeanNameAware, InitializingBean {
 
     private String beanName;
 
+    private String name;
+
+    public void setName(String name) {
+        this.name = name;
+    }
 
     public void test() {
-        addrService.test();
-        System.out.println("addrService:" + addrService);
-        System.out.println("userService bean name:" + beanName);
+        System.out.println("name:" + name);
 
     }
 

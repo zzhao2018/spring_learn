@@ -3,6 +3,8 @@ package com.spring;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -14,6 +16,7 @@ public class ZApplicationContext {
     // 单例池
     ConcurrentHashMap<String, Object> singletonObejcts = new ConcurrentHashMap<>();
     ConcurrentHashMap<String, BeanDefinition> beanDefinitionMap = new ConcurrentHashMap<>();
+    List<BeanPostProcessor> beanPostProcessors = new ArrayList<>();
 
     public ZApplicationContext(Class<com.demo.AppConfig> configClass) throws Exception {
         this.configClass = configClass;
@@ -52,6 +55,10 @@ public class ZApplicationContext {
                         Class<?> clazz = classLoader.loadClass(classname);
                         // 判断类上是否有 componet 注解
                         if (clazz.isAnnotationPresent(Componet.class)) {
+                            if (BeanPostProcessor.class.isAssignableFrom(clazz)) {
+                                beanPostProcessors.add((BeanPostProcessor) clazz.getDeclaredConstructor().newInstance());
+                            }
+
                             Componet componet = clazz.getDeclaredAnnotation(Componet.class);
                             String beanName = componet.value();
                             // 初始化BeanDefinition
@@ -91,7 +98,7 @@ public class ZApplicationContext {
             if (field.isAnnotationPresent(Autowired.class)) {
                 Object fieldBean = getBean(field.getName());
                 if (fieldBean == null) {
-                    throw new Exception("autowiredInject " + field.getName() + " bean not find");
+                    throw new Exception(beanName + " autowiredInject " + field.getName() + " bean not find");
                 }
                 field.setAccessible(true);
                 field.set(obj, fieldBean);
@@ -100,9 +107,22 @@ public class ZApplicationContext {
         if (obj instanceof BeanNameAware) {
             ((BeanNameAware) obj).setBeanName(beanName);
         }
+
+        // beanPostProcessor 初始化前动作
+        for (BeanPostProcessor beanPostProcessor : beanPostProcessors) {
+            obj = beanPostProcessor.postProcessBeforeInitialization(obj, beanName);
+        }
+
+        // 初始化
         if (obj instanceof InitializingBean) {
             ((InitializingBean) obj).afterPropertiesSet();
         }
+
+        // beanPostProcessor 初始化后动作
+        for (BeanPostProcessor beanPostProcessor : beanPostProcessors) {
+            obj = beanPostProcessor.postProcessAfterInitialization(obj, beanName);
+        }
+
     }
 
     // 创建bean
@@ -123,8 +143,20 @@ public class ZApplicationContext {
             if (instance instanceof BeanNameAware) {
                 ((BeanNameAware) instance).setBeanName(beanName);
             }
+
+            // beanPostProcessor 初始化前动作
+            for (BeanPostProcessor beanPostProcessor : beanPostProcessors) {
+                instance = beanPostProcessor.postProcessBeforeInitialization(instance, beanName);
+            }
+
+            // 初始化bean
             if (instance instanceof InitializingBean) {
                 ((InitializingBean) instance).afterPropertiesSet();
+            }
+
+            // beanPostProcessor 初始化后动作
+            for (BeanPostProcessor beanPostProcessor : beanPostProcessors) {
+                instance = beanPostProcessor.postProcessAfterInitialization(instance, beanName);
             }
             return instance;
         } catch (Exception e) {
