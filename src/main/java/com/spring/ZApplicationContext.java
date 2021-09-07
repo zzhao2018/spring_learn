@@ -26,13 +26,10 @@ public class ZApplicationContext {
         for (String beanName : beanDefinitionMap.keySet()) {
             BeanDefinition beanDefinition = beanDefinitionMap.get(beanName);
             if (beanDefinition.getScope().equals("singleton")) {
-                singletonObejcts.put(beanName, initBean(beanDefinition));
+                if (!singletonObejcts.containsKey(beanName)) {
+                    singletonObejcts.put(beanName, createBean(beanName, beanDefinition));
+                }
             }
-        }
-        // 单例bean 依赖注入
-        for (String beanName : singletonObejcts.keySet()) {
-            Object obj = singletonObejcts.get(beanName);
-            autowiredInject(beanName, obj);
         }
     }
 
@@ -80,53 +77,11 @@ public class ZApplicationContext {
         }
     }
 
-    // 初始化bean
-    private Object initBean(BeanDefinition beanDefinition) {
-        Class clazz = beanDefinition.getClazz();
-        try {
-            Object obj = clazz.getDeclaredConstructor().newInstance();
-            return obj;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    private void autowiredInject(String beanName, Object obj) throws Exception {
-        Class clazz = obj.getClass();
-        for (Field field : clazz.getDeclaredFields()) {
-            if (field.isAnnotationPresent(Autowired.class)) {
-                Object fieldBean = getBean(field.getName());
-                if (fieldBean == null) {
-                    throw new Exception(beanName + " autowiredInject " + field.getName() + " bean not find");
-                }
-                field.setAccessible(true);
-                field.set(obj, fieldBean);
-            }
-        }
-        if (obj instanceof BeanNameAware) {
-            ((BeanNameAware) obj).setBeanName(beanName);
-        }
-
-        // beanPostProcessor 初始化前动作
-        for (BeanPostProcessor beanPostProcessor : beanPostProcessors) {
-            obj = beanPostProcessor.postProcessBeforeInitialization(obj, beanName);
-        }
-
-        // 初始化
-        if (obj instanceof InitializingBean) {
-            ((InitializingBean) obj).afterPropertiesSet();
-        }
-
-        // beanPostProcessor 初始化后动作
-        for (BeanPostProcessor beanPostProcessor : beanPostProcessors) {
-            obj = beanPostProcessor.postProcessAfterInitialization(obj, beanName);
-        }
-
-    }
-
     // 创建bean
-    private Object createBean(String beanName, BeanDefinition beanDefinition) {
+    private Object createBean(String beanName, BeanDefinition beanDefinition) throws Exception {
+        if (singletonObejcts.contains(beanName)) {
+            return singletonObejcts.get(beanName);
+        }
         Class clazz = beanDefinition.getClazz();
         try {
             Object instance = clazz.getDeclaredConstructor().newInstance();
@@ -135,6 +90,19 @@ public class ZApplicationContext {
                 if (field.isAnnotationPresent(Autowired.class)) {
                     // 根据属性名称获取
                     Object bean = getBean(field.getName());
+                    if (bean == null) {
+                        // 获取依赖，创建bean
+                        BeanDefinition fieldBeanDefinition = beanDefinitionMap.get(field.getName());
+                        if (fieldBeanDefinition != null) {
+                            Object dependObj = createBean(field.getName(), fieldBeanDefinition);
+                            if (fieldBeanDefinition.getScope().equals("singleton")) {
+                                singletonObejcts.put(field.getName(), dependObj);
+                            }
+                            bean = getBean(field.getName());
+                        } else {
+                            throw new Exception(beanName + " depend on " + field.getName() + " is null");
+                        }
+                    }
                     // private可访问
                     field.setAccessible(true);
                     field.set(instance, bean);
@@ -160,9 +128,8 @@ public class ZApplicationContext {
             }
             return instance;
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new Exception(e.getMessage());
         }
-        return null;
     }
 
     public Object getBean(String beanName) throws Exception {

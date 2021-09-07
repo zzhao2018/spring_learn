@@ -3,7 +3,7 @@ package com.demo.service;
 import com.spring.*;
 
 @Componet("userService")
-@Scope("prototype")
+//@Scope("prototype")
 public class UserService implements BeanNameAware, InitializingBean {
     @Autowired
     private AddrService addrService;
@@ -17,7 +17,9 @@ public class UserService implements BeanNameAware, InitializingBean {
     }
 
     public void test() {
-        System.out.println("name:" + name);
+        System.out.println(addrService);
+        addrService.test();
+//        System.out.println("name:" + name);
 
     }
 
@@ -28,6 +30,6 @@ public class UserService implements BeanNameAware, InitializingBean {
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        System.out.println("afterPropertiesSet ----");
+//        System.out.println("afterPropertiesSet ----");
     }
 }

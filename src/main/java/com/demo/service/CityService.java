@@ -4,6 +4,6 @@ import com.spring.Componet;
 import com.spring.Scope;
 
 @Componet("cityService")
-@Scope("prototype")
+//@Scope("prototype")
 public class CityService {
 }
