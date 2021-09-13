@@ -10,6 +10,11 @@ public class Test {
         OrderService orderService = (OrderService) applicationContext.getBean("orderService");
 
         orderService.test();
+        System.out.println("===========");
+        orderService.test();
+        System.out.println("+++++++++++++++");
+        orderService.test();
+        System.out.println("------------");
 //        System.out.println("orderService:" + orderService);
 
 //        System.out.println("================");
