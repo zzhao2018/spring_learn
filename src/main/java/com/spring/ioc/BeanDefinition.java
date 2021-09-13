@@ -1,4 +1,4 @@
-package com.spring;
+package com.spring.ioc;
 
 /**
  * 表示bean的属性

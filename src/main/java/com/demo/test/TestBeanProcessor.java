@@ -1,8 +1,7 @@
-package com.demo.service;
+package com.demo.test;
 
-import com.demo.service.UserService;
-import com.spring.BeanPostProcessor;
-import com.spring.Componet;
+import com.spring.InitBean.BeanPostProcessor;
+import com.spring.ioc.Componet;
 
 @Componet("testBeanProcessor")
 public class TestBeanProcessor implements BeanPostProcessor {

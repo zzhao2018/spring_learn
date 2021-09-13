@@ -1,7 +1,19 @@
 package com.spring;
 
+import com.spring.InitBean.BeanNameAware;
+import com.spring.InitBean.BeanPostProcessor;
+import com.spring.InitBean.InitializingBean;
+import com.spring.aop.AopHandler;
+import com.spring.aop.Aspect;
+import com.spring.di.Autowired;
+import com.spring.ioc.BeanDefinition;
+import com.spring.ioc.ComponentScan;
+import com.spring.ioc.Componet;
+import com.spring.ioc.Scope;
+
 import java.io.File;
 import java.lang.reflect.Field;
+import java.lang.reflect.Proxy;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,6 +29,7 @@ public class ZApplicationContext {
     ConcurrentHashMap<String, Object> singletonObejcts = new ConcurrentHashMap<>();
     ConcurrentHashMap<String, BeanDefinition> beanDefinitionMap = new ConcurrentHashMap<>();
     List<BeanPostProcessor> beanPostProcessors = new ArrayList<>();
+    List<AopHandler> aopHandlers = new ArrayList<>();
 
     public ZApplicationContext(Class<com.demo.AppConfig> configClass) throws Exception {
         this.configClass = configClass;
@@ -52,6 +65,11 @@ public class ZApplicationContext {
                         Class<?> clazz = classLoader.loadClass(classname);
                         // 判断类上是否有 componet 注解
                         if (clazz.isAnnotationPresent(Componet.class)) {
+                            // 切面
+                            if (clazz.isAnnotationPresent(Aspect.class)) {
+                                aopHandlers.add(new AopHandler(clazz));
+                                continue;
+                            }
                             if (BeanPostProcessor.class.isAssignableFrom(clazz)) {
                                 beanPostProcessors.add((BeanPostProcessor) clazz.getDeclaredConstructor().newInstance());
                             }
@@ -125,6 +143,18 @@ public class ZApplicationContext {
             // beanPostProcessor 初始化后动作
             for (BeanPostProcessor beanPostProcessor : beanPostProcessors) {
                 instance = beanPostProcessor.postProcessAfterInitialization(instance, beanName);
+            }
+            // aop粗略实现 todo
+            Class superInterface = null;
+            for (Class interfacez : clazz.getInterfaces()) {
+                if ((interfacez.getName() + "Impl").equals(clazz.getName())) {
+                    superInterface = interfacez;
+                    break;
+                }
+            }
+            for (AopHandler handler : aopHandlers) {
+                handler.setInstance(instance);
+                instance = Proxy.newProxyInstance(ClassLoader.getSystemClassLoader(), new Class[]{superInterface}, handler);
             }
             return instance;
         } catch (Exception e) {

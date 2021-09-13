@@ -1,7 +1,7 @@
-package com.demo.service;
+package com.demo.test;
 
-import com.spring.Autowired;
-import com.spring.Componet;
+import com.spring.di.Autowired;
+import com.spring.ioc.Componet;
 
 @Componet("addrService")
 public class AddrService {

@@ -1,6 +1,9 @@
-package com.demo.service;
+package com.demo.test;
 
-import com.spring.*;
+import com.spring.InitBean.BeanNameAware;
+import com.spring.InitBean.InitializingBean;
+import com.spring.di.Autowired;
+import com.spring.ioc.Componet;
 
 @Componet("userService")
 //@Scope("prototype")
